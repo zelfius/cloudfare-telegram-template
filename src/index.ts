@@ -24,7 +24,7 @@ app.post('/create-webhook', async (c) => {
       },
       body: JSON.stringify({
         webhookURL: webhookURL,
-        transactionTypes: ["NFT_SALE"],
+        transactionTypes: ["NFT_SALE", "TRANSFER"], // Aggiunto "TRANSFER"
         accountAddresses: ["M2mx93ekt1fmXSVkTrUL9xVFHkmME8HTUi5Cyc5aF7K"], // Magic Eden v2 program
         webhookType: "enhanced",
         authHeader: c.env.AUTH_TOKEN
@@ -76,11 +76,26 @@ app.post('/webhook', async (c) => {
   for (const transaction of data) {
     if (transaction.type === 'NFT_SALE') {
       const { amount, buyer, seller, signature, nfts } = transaction.events.nft;
-      const message = `🎉 *NFT Sale*\n\n` +
-        `*Price*: ${amount / 1e9} SOL\n` +
-        `*Buyer*: \`${buyer}\`\n` +
-        `*Seller*: \`${seller}\`\n` +
-        `*Signature*: [View on Solana Explorer](https://explorer.solana.com/tx/${signature})`;
+      const message = `🎉 *Vendita NFT*\n\n` +
+        `*Prezzo*: ${amount / 1e9} SOL\n` +
+        `*Acquirente*: \`${buyer}\`\n` +
+        `*Venditore*: \`${seller}\`\n` +
+        `*Firma*: [Vedi su Solana Explorer](https://explorer.solana.com/tx/${signature})`;
+      
+      try {
+        const result = await sendTelegramMessage(message, c.env);
+        console.log('Telegram message sent:', result);
+      } catch (error) {
+        console.error('Error sending Telegram message:', error);
+      }
+    } else if (transaction.type === 'TRANSFER') { // Gestione del tipo "TRANSFER"
+      const { amount, from, to, signature, token } = transaction.events.transfer;
+      const message = `🔄 *Trasferimento Token*\n\n` +
+        `*Token*: ${token}\n` +
+        `*Quantità*: ${amount}\n` +
+        `*Da*: \`${from}\`\n` +
+        `*A*: \`${to}\`\n` +
+        `*Firma*: [Vedi su Solana Explorer](https://explorer.solana.com/tx/${signature})`;
       
       try {
         const result = await sendTelegramMessage(message, c.env);
